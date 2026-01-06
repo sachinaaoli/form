@@ -8,7 +8,7 @@ const ACCEPTED_TYPES = ["image/jpeg", "image/png", "application/pdf"];
 export const formSchema = z.object({
   fullNameEn: z
     .string()
-    .min(1, "Name is required")
+    .min(1, "Full Name (English) is required")
     .regex(/^[a-zA-Z\s]+$/, "Only alphabets allowed"),
   fullNameNp: z.string().optional(),
   
@@ -19,7 +19,7 @@ export const formSchema = z.object({
 phone: z.string()
     .optional()
     .refine((val) => {
-      if (!val) return true; // Empty is fine (unless superRefine catches it)
+      if (!val) return true; 
       return /^[9]\d{9}$/.test(val);
     }, {
       message: "Phone must be 10 digits and start with 9"

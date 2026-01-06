@@ -83,10 +83,18 @@ export default function MultiStepForm() {
     }
   };
 
-  const onContinue = async () => {
+ const onContinue = async () => {
     const valid = await trigger(["fullNameEn", "fullNameNp", "gender", "dobAD", "dobBS", "phone"]);
-    if (valid) {
-      setStep(2);
+    
+    if (isMaleAndOver18 && !watch("phone")) {
+        form.setError("phone", { 
+            type: "manual", 
+            message: "Phone number is required for Males over 18." 
+        });
+        
+        return; 
+    }    if (valid) {
+        setStep(2);
     }
   };
 
