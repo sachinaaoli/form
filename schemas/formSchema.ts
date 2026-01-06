@@ -35,16 +35,14 @@ phone: z.string()
     .any()
     .refine((file) => file instanceof File, "Front image is required")
     .refine((file) => file?.size <= MAX_FILE_SIZE, "Max file size is 2MB")
-    .refine(
-      (file) => ACCEPTED_TYPES.includes(file?.type),
+    .refine((file) => ACCEPTED_TYPES.includes(file?.type),
       "Only .jpg, .png, and .pdf allowed"
     ),
   citizenshipBack: z
     .any()
     .refine((file) => file instanceof File, "Back image is required")
     .refine((file) => file?.size <= MAX_FILE_SIZE, "Max file size is 2MB")
-    .refine(
-      (file) => ACCEPTED_TYPES.includes(file?.type),
+    .refine((file) => ACCEPTED_TYPES.includes(file?.type),
       "Only .jpg, .png, and .pdf allowed"
     ),
 }).superRefine((data, ctx) => {

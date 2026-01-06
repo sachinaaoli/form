@@ -23,7 +23,7 @@ export default function MultiStepForm() {
 
   const form = useForm<FormSchemaType>({
     resolver: zodResolver(formSchema),
-    mode: "onChange",
+    mode: "onChange",  // ensures real-time validation feedback as the user types.
     defaultValues: {
       fullNameEn: "",
       fullNameNp: "",
@@ -35,9 +35,12 @@ export default function MultiStepForm() {
 
   const { watch, setValue, trigger, formState: { errors, isValid } } = form;
 
+  // Watch specific fields to trigger logic
   const dobAD = watch("dobAD");
   const gender = watch("gender");
 
+  // Calculates if the user is "Male & Over 18" only when gender or DOB changes.
+  // Using useMemo to prevent re-calculating this on every single render.
   const isMaleAndOver18 = React.useMemo(() => {
     if (gender === "Male" && dobAD) {
       return calculateAge(dobAD) > 18;
@@ -45,7 +48,7 @@ export default function MultiStepForm() {
     return false;
   }, [gender, dobAD]);
 
-  // (BS ↔ AD)
+  // Changing AD updates BS, and vice versa.
   const handleDateChange = (type: "AD" | "BS", value: string, fieldPrefix: "dob" | "issuedDate") => {
     try {
       if (type === "AD") {
@@ -66,7 +69,7 @@ export default function MultiStepForm() {
     }
   };
 
-  // Unicode Typing in Nepali fields
+  //  Fetches Nepali text from API and replaces the last English word after space.
   const handleUnicodeInput = async (e: React.KeyboardEvent<HTMLInputElement>, field: any) => {
     if (e.key === " ") {
       e.preventDefault();
@@ -75,6 +78,7 @@ export default function MultiStepForm() {
       const lastWord = words[words.length - 1];
       if (lastWord) {
         const converted = await fetchNepaliTransliteration(lastWord);
+        // Replace the last word with the converted Nepali word
         const newValue = current.substring(0, current.lastIndexOf(lastWord)) + converted + " ";
         field.onChange(newValue);
       } else {
@@ -83,7 +87,8 @@ export default function MultiStepForm() {
     }
   };
 
- const onContinue = async () => {
+  // Manually validates Step 1 fields before allowing the user to proceed.
+  const onContinue = async () => {
     const valid = await trigger(["fullNameEn", "fullNameNp", "gender", "dobAD", "dobBS", "phone"]);
     
     if (isMaleAndOver18 && !watch("phone")) {
@@ -91,9 +96,9 @@ export default function MultiStepForm() {
             type: "manual", 
             message: "Phone number is required for Males over 18." 
         });
-        
         return; 
-    }    if (valid) {
+    }    
+    if (valid) {
         setStep(2);
     }
   };
@@ -109,6 +114,7 @@ export default function MultiStepForm() {
     setPreviewType(file.type === "application/pdf" ? "pdf" : "image");
   };
 
+  // Converts file objects to Base64 strings so the entire form data is just JSON text.
   const onSubmit = async (data: FormSchemaType) => {
     try {
       const payload = {
@@ -147,6 +153,7 @@ export default function MultiStepForm() {
                     <FormItem>
                       <FormLabel>Full Name (Nepali)</FormLabel>
                       <FormControl>
+                        {/* onKeyDown handler for transliteration */}
                         <Input placeholder="Type romanized..." {...field} onKeyDown={(e) => handleUnicodeInput(e, field)} />
                       </FormControl>
                       <FormMessage />
@@ -266,7 +273,6 @@ export default function MultiStepForm() {
                   <div className="flex gap-4 pt-4">
                     <Button type="button" variant="outline" onClick={() => setStep(1)}>Back</Button>
 
-                    {/*  hide submit button until step 2 fields are valid */}
                     {isValid && (
                       <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700">
                         Submit Application
@@ -280,6 +286,7 @@ export default function MultiStepForm() {
         </CardContent>
       </Card>
 
+      {/* --- PREVIEW MODAL --- */}
       <Dialog open={!!previewUrl} onOpenChange={() => setPreviewUrl(null)}>
         <DialogContent className="max-w-3xl w-full">
           <DialogHeader>
