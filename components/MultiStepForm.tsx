@@ -130,7 +130,7 @@ export default function MultiStepForm() {
                   <FormField control={form.control} name="fullNameEn" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Full Name (English)</FormLabel>
-                      <FormControl><Input placeholder="John Doe" {...field} /></FormControl>
+                      <FormControl><Input placeholder="Sachina Oli" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
