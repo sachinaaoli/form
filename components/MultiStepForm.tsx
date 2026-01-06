@@ -126,7 +126,7 @@ export default function MultiStepForm() {
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 flex items-center justify-center">
       <Card className="w-full max-w-3xl shadow-xl">
         <CardHeader className="bg-slate-900 text-white rounded-t-xl">
-          <CardTitle className="text-xl md:text-2xl text-center"> Form - Step {step} of 2</CardTitle>
+          <CardTitle className="text-xl md:text-2xl text-center"> Form Sample - Step {step} of 2</CardTitle>
         </CardHeader>
         <CardContent className="p-6">
           <Form {...form}>
