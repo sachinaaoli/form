@@ -16,8 +16,14 @@ export const formSchema = z.object({
   
   dobAD: z.date(),
   dobBS: z.string().min(1, "Date of Birth (BS) is required"),
-  phone: z.string().optional(),
-
+phone: z.string()
+    .optional()
+    .refine((val) => {
+      if (!val) return true; // Empty is fine (unless superRefine catches it)
+      return /^[9]\d{9}$/.test(val);
+    }, {
+      message: "Phone must be 10 digits and start with 9"
+    }),
   citizenshipNo: z.string().min(1, "Citizenship number is required"),
   
  issuedDistrict: z.enum(NEPALI_DISTRICTS as [string, ...string[]]),

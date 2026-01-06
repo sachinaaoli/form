@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader } from "@/components/ui/dialog";
 
 export default function MultiStepForm() {
   const [step, setStep] = useState(1);
@@ -23,28 +23,29 @@ export default function MultiStepForm() {
 
   const form = useForm<FormSchemaType>({
     resolver: zodResolver(formSchema),
-    mode: "onBlur", 
+    mode: "onChange",
     defaultValues: {
-        fullNameEn: "",
-        fullNameNp: "",
-        gender: "Male", 
-        phone: "",
-        citizenshipNo: "",
-    }
+      fullNameEn: "",
+      fullNameNp: "",
+      gender: "Male",
+      phone: "",
+      citizenshipNo: "",
+    },
   });
 
-  const { watch, setValue, trigger, formState: { errors } } = form;
+  const { watch, setValue, trigger, formState: { errors, isValid } } = form;
 
   const dobAD = watch("dobAD");
   const gender = watch("gender");
 
   const isMaleAndOver18 = React.useMemo(() => {
     if (gender === "Male" && dobAD) {
-        return calculateAge(dobAD) > 18;
+      return calculateAge(dobAD) > 18;
     }
     return false;
   }, [gender, dobAD]);
 
+  // (BS ↔ AD)
   const handleDateChange = (type: "AD" | "BS", value: string, fieldPrefix: "dob" | "issuedDate") => {
     try {
       if (type === "AD") {
@@ -65,35 +66,27 @@ export default function MultiStepForm() {
     }
   };
 
+  // Unicode Typing in Nepali fields
   const handleUnicodeInput = async (e: React.KeyboardEvent<HTMLInputElement>, field: any) => {
     if (e.key === " ") {
-        e.preventDefault();
-        const current = field.value || "";
-        const words = current.split(" ");
-        const lastWord = words[words.length - 1];
-        if (lastWord) {
-            const converted = await fetchNepaliTransliteration(lastWord);
-            const newValue = current.substring(0, current.lastIndexOf(lastWord)) + converted + " ";
-            field.onChange(newValue);
-        } else {
-            field.onChange(current + " ");
-        }
+      e.preventDefault();
+      const current = field.value || "";
+      const words = current.split(" ");
+      const lastWord = words[words.length - 1];
+      if (lastWord) {
+        const converted = await fetchNepaliTransliteration(lastWord);
+        const newValue = current.substring(0, current.lastIndexOf(lastWord)) + converted + " ";
+        field.onChange(newValue);
+      } else {
+        field.onChange(current + " ");
+      }
     }
   };
 
   const onContinue = async () => {
     const valid = await trigger(["fullNameEn", "fullNameNp", "gender", "dobAD", "dobBS", "phone"]);
-    
-    if (isMaleAndOver18 && !watch("phone")) {
-        form.setError("phone", { 
-            type: "manual", 
-            message: "Phone number is required for Males over 18." 
-        });
-        return; 
-    }
-
     if (valid) {
-        setStep(2);
+      setStep(2);
     }
   };
 
@@ -110,15 +103,15 @@ export default function MultiStepForm() {
 
   const onSubmit = async (data: FormSchemaType) => {
     try {
-        const payload = {
-            ...data,
-            citizenshipFront: await convertFileToBase64(data.citizenshipFront),
-            citizenshipBack: await convertFileToBase64(data.citizenshipBack),
-        };
-        console.log("FINAL SUBMIT DATA:", payload);
-        alert("Form Submitted Successfully!");
+      const payload = {
+        ...data,
+        citizenshipFront: await convertFileToBase64(data.citizenshipFront),
+        citizenshipBack: await convertFileToBase64(data.citizenshipBack),
+      };
+      console.log("FINAL SUBMIT DATA:", payload);
+      alert("Form Submitted Successfully!");
     } catch (e) {
-        alert("Error submitting form");
+      alert("Error submitting form");
     }
   };
 
@@ -126,79 +119,78 @@ export default function MultiStepForm() {
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 flex items-center justify-center">
       <Card className="w-full max-w-3xl shadow-xl">
         <CardHeader className="bg-slate-900 text-white rounded-t-xl">
-          <CardTitle className="text-xl md:text-2xl text-center"> Form- Step {step} of 2</CardTitle>
+          <CardTitle className="text-xl md:text-2xl text-center">Job Application - Step {step} of 2</CardTitle>
         </CardHeader>
         <CardContent className="p-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              
+
               {step === 1 && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                   <FormField control={form.control} name="fullNameEn" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name (English)</FormLabel>
-                        <FormControl><Input placeholder="Sachina Oli" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <FormItem>
+                      <FormLabel>Full Name (English)</FormLabel>
+                      <FormControl><Input placeholder="John Doe" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
 
                   <FormField control={form.control} name="fullNameNp" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name (Nepali)</FormLabel>
-                        <FormControl>
-                            <Input placeholder="Type Nepali..." {...field} onKeyDown={(e) => handleUnicodeInput(e, field)} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <FormItem>
+                      <FormLabel>Full Name (Nepali)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Type romanized..." {...field} onKeyDown={(e) => handleUnicodeInput(e, field)} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
 
                   <FormField control={form.control} name="gender" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Gender</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
-                          <SelectContent>
-                            <SelectItem value="Male">Male</SelectItem>
-                            <SelectItem value="Female">Female</SelectItem>
-                            <SelectItem value="Other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <FormItem>
+                      <FormLabel>Gender</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="Male">Male</SelectItem>
+                          <SelectItem value="Female">Female</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
 
                   <div className="grid grid-cols-2 gap-4">
                     <FormItem>
-                        <FormLabel>Date of Birth (AD)</FormLabel>
-                        <Input type="date" onChange={(e) => handleDateChange("AD", e.target.value, "dob")} />
-                        {errors.dobAD && <p className="text-sm text-red-500 font-medium">{errors.dobAD.message}</p>}
+                      <FormLabel htmlFor="dobAD">Date of Birth (AD)</FormLabel>
+                      <Input id="dobAD" name="dobAD" type="date" onChange={(e) => handleDateChange("AD", e.target.value, "dob")} />
+                      {errors.dobAD && <p className="text-sm text-red-500 font-medium">{errors.dobAD.message}</p>}
                     </FormItem>
                     <FormItem>
-                        <FormLabel>Date of Birth (BS)</FormLabel>
-                        <Input placeholder="YYYY-MM-DD" value={watch("dobBS") || ""} onChange={(e) => handleDateChange("BS", e.target.value, "dob")} />
-                        {errors.dobBS && <p className="text-sm text-red-500 font-medium">{errors.dobBS.message}</p>}
+                      <FormLabel htmlFor="dobBS">Date of Birth (BS)</FormLabel>
+                      <Input id="dobBS" name="dobBS" placeholder="YYYY-MM-DD" value={watch("dobBS") || ""} onChange={(e) => handleDateChange("BS", e.target.value, "dob")} />
+                      {errors.dobBS && <p className="text-sm text-red-500 font-medium">{errors.dobBS.message}</p>}
                     </FormItem>
                   </div>
-                  
+
                   {dobAD && (
-                      <div className="p-2 bg-blue-50 text-blue-700 rounded text-sm font-medium">
-                        Age: {calculateAge(dobAD)} years
-                      </div>
+                    <div className="p-2 bg-blue-50 text-blue-700 rounded text-sm font-medium">
+                      Age: {calculateAge(dobAD)} years
+                    </div>
                   )}
 
                   <FormField control={form.control} name="phone" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone Number</FormLabel> 
-                        <FormControl>
-                            <Input placeholder="98XXXXXXXX" {...field} />
-                        </FormControl>
-                        <FormMessage className="text-red-600" />
-                      </FormItem>
-                    )}
-                  />
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-1">
+                        Phone Number
+                        {isMaleAndOver18 && <span className="text-red-600 text-xs font-bold animate-pulse">*</span>}
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="98XXXXXXXX" {...field} />
+                      </FormControl>
+                      <FormMessage className="text-red-600" />
+                    </FormItem>
+                  )} />
 
                   <Button type="button" onClick={onContinue} className="w-full text-lg">
                     Continue to Documents
@@ -209,67 +201,69 @@ export default function MultiStepForm() {
               {step === 2 && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                   <FormField control={form.control} name="citizenshipNo" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Citizenship Number</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
+                    <FormItem>
+                      <FormLabel>Citizenship Number</FormLabel>
+                      <FormControl><Input {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
                   <FormField control={form.control} name="issuedDistrict" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Issued District</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Select District" /></SelectTrigger></FormControl>
-                          <SelectContent className="max-h-60">
-                             {NEPALI_DISTRICTS.map((district) => (
-                                <SelectItem key={district} value={district}>{district}</SelectItem>
-                             ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <FormItem>
+                      <FormLabel>Issued District</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select District" /></SelectTrigger></FormControl>
+                        <SelectContent className="max-h-60">
+                          {NEPALI_DISTRICTS.map((district) => (
+                            <SelectItem key={district} value={district}>{district}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
 
                   <div className="grid grid-cols-2 gap-4">
                     <FormItem>
-                        <FormLabel>Issued Date (AD)</FormLabel>
-                        <Input type="date" onChange={(e) => handleDateChange("AD", e.target.value, "issuedDate")} />
-                        {errors.issuedDateAD && <p className="text-sm text-red-500">{errors.issuedDateAD.message}</p>}
+                      <FormLabel htmlFor="issuedDateAD">Issued Date (AD)</FormLabel>
+                      <Input id="issuedDateAD" name="issuedDateAD" type="date" onChange={(e) => handleDateChange("AD", e.target.value, "issuedDate")} />
+                      {errors.issuedDateAD && <p className="text-sm text-red-500">{errors.issuedDateAD.message}</p>}
                     </FormItem>
                     <FormItem>
-                        <FormLabel>Issued Date (BS)</FormLabel>
-                        <Input placeholder="YYYY-MM-DD" value={watch("issuedDateBS") || ""} onChange={(e) => handleDateChange("BS", e.target.value, "issuedDate")} />
-                        {errors.issuedDateBS && <p className="text-sm text-red-500">{errors.issuedDateBS.message}</p>}
+                      <FormLabel htmlFor="issuedDateBS">Issued Date (BS)</FormLabel>
+                      <Input id="issuedDateBS" name="issuedDateBS" placeholder="YYYY-MM-DD" value={watch("issuedDateBS") || ""} onChange={(e) => handleDateChange("BS", e.target.value, "issuedDate")} />
+                      {errors.issuedDateBS && <p className="text-sm text-red-500">{errors.issuedDateBS.message}</p>}
                     </FormItem>
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-6">
                     {["citizenshipFront", "citizenshipBack"].map((key) => (
-                        <FormItem key={key}>
-                            <FormLabel>{key === "citizenshipFront" ? "Front Photo" : "Back Photo"}</FormLabel>
-                            <div className="space-y-2">
-                                <Input type="file" accept=".jpg,.png,.pdf" onChange={(e) => handleFile(e, key)} />
-                                {watch(key as any) && (
-                                    <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => openPreview(watch(key as any))}>
-                                        Preview Upload
-                                    </Button>
-                                )}
-                            </div>
-                            {errors[key as keyof FormSchemaType] && (
-                                <p className="text-sm text-red-500 font-medium">{(errors[key as keyof FormSchemaType] as any)?.message}</p>
-                            )}
-                        </FormItem>
+                      <FormItem key={key}>
+                        <FormLabel>{key === "citizenshipFront" ? "Front Photo" : "Back Photo"}</FormLabel>
+                        <div className="space-y-2">
+                          <Input type="file" accept=".jpg,.png,.pdf" onChange={(e) => handleFile(e, key)} />
+                          {watch(key as any) && (
+                            <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => openPreview(watch(key as any))}>
+                              Preview Upload
+                            </Button>
+                          )}
+                        </div>
+                        {errors[key as keyof FormSchemaType] && (
+                          <p className="text-sm text-red-500 font-medium">{(errors[key as keyof FormSchemaType] as any)?.message}</p>
+                        )}
+                      </FormItem>
                     ))}
                   </div>
 
                   <div className="flex gap-4 pt-4">
                     <Button type="button" variant="outline" onClick={() => setStep(1)}>Back</Button>
-                    <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700">
+
+                    {/*  hide submit button until step 2 fields are valid */}
+                    {isValid && (
+                      <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700">
                         Submit Application
-                    </Button>
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}
@@ -278,16 +272,19 @@ export default function MultiStepForm() {
         </CardContent>
       </Card>
 
-     <Dialog open={!!previewUrl} onOpenChange={() => setPreviewUrl(null)}>
+      <Dialog open={!!previewUrl} onOpenChange={() => setPreviewUrl(null)}>
         <DialogContent className="max-w-3xl w-full">
+          <DialogHeader>
             <DialogTitle>Document Preview</DialogTitle>
-            <div className="mt-4 flex justify-center bg-gray-100 p-4 rounded border">
-                {previewType === "image" ? (
-                    <img src={previewUrl!} alt="Preview" className="max-h-[70vh] w-auto object-contain" />
-                ) : (
-                    <iframe src={previewUrl!} className="w-full h-[70vh] border-none" title="PDF Preview" />
-                )}
-            </div>
+            <DialogDescription className="hidden">Preview of uploaded document</DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 flex justify-center bg-gray-100 p-4 rounded border">
+            {previewType === "image" ? (
+              <img src={previewUrl!} alt="Preview" className="max-h-[70vh] w-auto object-contain" />
+            ) : (
+              <iframe src={previewUrl!} className="w-full h-[70vh] border-none" title="PDF Preview" />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
